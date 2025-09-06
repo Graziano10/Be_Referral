@@ -2,7 +2,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload, TokenExpiredError } from "jsonwebtoken";
 import env from "../config/env"; // deve esportare JWT_ACCESS_SECRET (string)
-import { TProfileSchema } from "../database/types";
+import { ProfileRole, TProfileSchema } from "../database/types";
 import { Profile } from "../database/models";
 
 /** Payload atteso nel JWT di accesso */
@@ -10,7 +10,7 @@ type AccessTokenPayload = JwtPayload & {
   email?: string;
   profileId?: string;
   sub?: string;
-  roles?: string[];
+  role?: ProfileRole[];
 };
 
 /** Augment di Express Request */
@@ -20,12 +20,12 @@ declare module "express-serve-static-core" {
       profileId: string;
       email?: string;
       sub?: string;
-      roles?: string[];
+      role?: string[];
       raw?: AccessTokenPayload;
     };
     profile?: Pick<
       TProfileSchema,
-      "_id" | "email" | "firstName" | "lastName" | "verified"
+      "_id" | "email" | "firstName" | "lastName" | "verified" | "role"
     >;
   }
 }
@@ -101,6 +101,7 @@ declare module "express-serve-static-core" {
           firstName?: string;
           lastName?: string;
           verified: boolean;
+          role: ProfileRole;
         }>();
 
       if (!prof) {
@@ -118,6 +119,7 @@ declare module "express-serve-static-core" {
         firstName: prof.firstName,
         lastName: prof.lastName,
         verified: prof.verified,
+        role: prof.role,
       } as any;
     }
 
@@ -134,7 +136,11 @@ declare module "express-serve-static-core" {
       profileId: profileIdStr,
       email,
       sub: payload.sub,
-      roles: payload.roles ?? [],
+      role: Array.isArray(payload.role)
+        ? payload.role
+        : payload.role
+        ? [payload.role]
+        : [],
       raw: payload,
     };
 

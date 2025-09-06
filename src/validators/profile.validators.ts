@@ -59,10 +59,61 @@ export const RegisterProfileBody = z
     password: z.string().min(8, "Password troppo corta (min 8)"),
     user_id: z.coerce.number().int().positive().optional(),
     phone: PhoneE164Like,
-    companyName: z.string().trim().min(1).max(200).optional(),
-    vatNumber: VatIT,
     region: z.enum(ITALIAN_REGIONS).optional(),
     referredByCode: ReferralCode.optional(),
+    newsletter: z.boolean().optional(),
+
+    // --- new fields ---
+    city: z.string().trim().max(100).optional(),
+    cap: z
+      .string()
+      .regex(/^\d{5}$/, "CAP non valido")
+      .optional(),
+    street: z.string().trim().max(200).optional(),
+    codFiscale: z
+      .string()
+      .trim()
+      .regex(/^[A-Z0-9]{11,16}$/i, "Codice Fiscale non valido")
+      .optional(),
+
+    isCompany: z.boolean().default(false),
+    vatNumber: VatIT,
+    businessName: z.string().trim().max(200).optional(),
+    headquartersAddress: z.string().trim().max(300).optional(),
+    ceoName: z.string().trim().max(200).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.isCompany) {
+      if (!data.businessName) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Business name richiesto per aziende",
+          path: ["businessName"],
+        });
+      }
+      if (!data.headquartersAddress) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Headquarters address richiesto per aziende",
+          path: ["headquartersAddress"],
+        });
+      }
+      if (!data.ceoName) {
+        ctx.addIssue({
+          code: "custom",
+          message: "CEO name richiesto per aziende",
+          path: ["ceoName"],
+        });
+      }
+    } else {
+      if (!data.codFiscale) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Codice Fiscale richiesto per persone fisiche",
+          path: ["codFiscale"],
+        });
+      }
+    }
   })
   .strict();
 
@@ -89,21 +140,43 @@ export const validateLogin = () => validateRequest({ body: loginSchema });
 /* ------------------------------ LISTA ------------------------------ */
 export const ListProfilesQuery = z
   .object({
-    limit: z.coerce.number().int().min(1).max(100).default(20),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce
+      .number()
+      .int()
+      .refine((val) => [10, 20, 50].includes(val), {
+        message: "Limit consentito: 10, 20, 50",
+      })
+      .default(10),
+
     cursor: MongoId.optional(),
     sortBy: z
-      .enum(["createdAt", "dateJoined", "lastLogin", "lastActivity"])
+      .enum([
+        "createdAt",
+        "dateJoined",
+        "lastLogin",
+        "lastActivity",
+        "firstName",
+        "lastName",
+        "email",
+        "businessName",
+        "vatNumber",
+        "city",
+      ])
       .default("createdAt"),
     sortDir: z.enum(["asc", "desc"]).default("desc"),
 
-    // filtri
     region: z.enum(ITALIAN_REGIONS).optional(),
     email: Email.optional(),
-    companyName: z.string().trim().min(1).max(200).optional(),
     vatNumber: VatIT,
     referredBy: MongoId.optional(),
     ref: ReferralCode.optional(),
     q: z.string().trim().min(1).max(120).optional(),
+
+    type: z.enum(["azienda", "persona"]).optional(),
+    verified: z.enum(["true", "false"]).optional(),
+    newsletter: z.enum(["true", "false"]).optional(),
+    role: z.enum(["superAdmin", "admin", "technician", "user"]).optional(),
   })
   .strict();
 
@@ -127,15 +200,66 @@ export const UpdateProfileBody = z
     lastName: z.string().trim().min(1).max(100).optional(),
     email: Email.optional(),
     phone: PhoneE164Like,
-    companyName: z.string().trim().min(1).max(200).optional(),
     vatNumber: VatIT,
     region: z.enum(ITALIAN_REGIONS).optional(),
+
+    isCompany: z.boolean().optional(),
+    businessName: z.string().trim().max(200).optional(),
+    headquartersAddress: z.string().trim().max(300).optional(),
+    ceoName: z.string().trim().max(200).optional(),
+    codFiscale: z
+      .string()
+      .trim()
+      .regex(/^[A-Z0-9]{11,16}$/i, "Codice Fiscale non valido")
+      .optional()
+      .or(z.literal("").transform(() => undefined)), // 👈 consenti stringa vuota
+
+    city: z.string().trim().max(100).optional(),
+    cap: z
+      .string()
+      .regex(/^\d{5}$/, "CAP non valido")
+      .optional(),
+    street: z.string().trim().max(200).optional(),
     signed: z.boolean().optional(),
     signedAt: z.coerce.date().optional(),
+    newsletter: z.boolean().optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, {
     message: "Nessun campo da aggiornare",
+  })
+  .superRefine((data, ctx) => {
+    if (data.isCompany) {
+      if (!data.businessName) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Business name richiesto per aziende",
+          path: ["businessName"],
+        });
+      }
+      if (!data.headquartersAddress) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Headquarters address richiesto per aziende",
+          path: ["headquartersAddress"],
+        });
+      }
+      if (!data.ceoName) {
+        ctx.addIssue({
+          code: "custom",
+          message: "CEO name richiesto per aziende",
+          path: ["ceoName"],
+        });
+      }
+    } else {
+      if (!data.codFiscale) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Codice Fiscale richiesto per persone fisiche",
+          path: ["codFiscale"],
+        });
+      }
+    }
   });
 
 export const validateUpdateProfile = () =>
@@ -144,3 +268,21 @@ export const validateUpdateProfile = () =>
 /* ------------------------------ DELETE ------------------------------ */
 export const validateDeleteProfile = () =>
   validateRequest({ params: GetProfileParams });
+
+/* ------------------- ASSIGN ROLES ------------------- */
+export const AssignRoleParams = z
+  .object({
+    profileId: MongoId,
+  })
+  .strict();
+
+export const AssignRoleBody = z
+  .object({
+    role: z.enum(["user", "admin"] as const).refine((val) => !!val, {
+      message: "Devi specificare un ruolo valido (user o admin)",
+    }),
+  })
+  .strict();
+
+export const validateAssignRole = () =>
+  validateRequest({ params: AssignRoleParams, body: AssignRoleBody });

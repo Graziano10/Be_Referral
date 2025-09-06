@@ -8,26 +8,8 @@ import {
   HTTP_404_NOT_FOUND,
   HTTP_500_INTERNAL_SERVER_ERROR,
 } from "../httpUtils";
+import { SAFE_FIELDS } from "./getProfile.controller";
 
-const SAFE_FIELDS = [
-  "_id",
-  "user_id",
-  "firstName",
-  "lastName",
-  "email",
-  "phone",
-  "companyName",
-  "vatNumber",
-  "region",
-  "verified",
-  "referralCode",
-  "referredBy",
-  "dateJoined",
-  "createdAt",
-  "updatedAt",
-] as const;
-
-// GET /api/profiles/:profileId?fields=...&page=1&limit=10
 export const getProfileById = async (
   req: Request,
   res: Response,
@@ -45,7 +27,7 @@ export const getProfileById = async (
     }
     const pid = new Types.ObjectId(profileId);
 
-    // --- proiezione sicura dei campi del profilo ---
+    // proiezione sicura
     const fieldsParam = String(req.query.fields || "").trim();
     const requested = fieldsParam
       ? fieldsParam
@@ -60,7 +42,7 @@ export const getProfileById = async (
         ? filtered.join(" ")
         : (SAFE_FIELDS as readonly string[]).join(" ");
 
-    // --- paginazione referrals ---
+    // paginazione per le email dei referral
     const page = Math.max(parseInt(String(req.query.page || "1"), 10) || 1, 1);
     const limit = Math.min(
       Math.max(parseInt(String(req.query.limit || "10"), 10) || 10, 1),
@@ -68,11 +50,11 @@ export const getProfileById = async (
     );
     const skip = (page - 1) * limit;
 
-    // --- query in parallelo ---
-    const [profileDoc, referrals, totalReferrals] = await Promise.all([
+    // query in parallelo
+    const [profileDoc, referralsPage, counted] = await Promise.all([
       Profile.findOne({ _id: pid }).select(projection).lean(),
       Profile.find({ referredBy: pid })
-        .select("_id email user_id firstName lastName createdAt")
+        .select("email createdAt")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -84,7 +66,13 @@ export const getProfileById = async (
       return HTTP_404_NOT_FOUND(res, "Profilo non trovato");
     }
 
-    // Caching headers (facoltativi)
+    // totale: preferisci il contatore denormalizzato con fallback
+    const totalReferrals =
+      typeof (profileDoc as any).referralsCount === "number"
+        ? (profileDoc as any).referralsCount
+        : counted;
+
+    // headers caching
     const lastMod =
       (profileDoc as any).updatedAt ??
       (profileDoc as any).createdAt ??
@@ -96,7 +84,7 @@ export const getProfileById = async (
     );
     res.setHeader("Cache-Control", "private, must-revalidate");
 
-    // Response con riepilogo referrals
+    // ✅ emails (pagina corrente) + meta
     return HTTP_200_OK(res, {
       ok: true,
       profile: profileDoc,
@@ -104,8 +92,8 @@ export const getProfileById = async (
         total: totalReferrals,
         page,
         limit,
-        count: referrals.length,
-        emails: referrals.map((r) => r.email),
+        count: referralsPage.length,
+        emails: referralsPage.map((r) => r.email),
       },
     });
   } catch (err) {

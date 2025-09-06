@@ -23,9 +23,16 @@ type CreateProfileDTO = {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  companyName?: string;
-  vatNumber?: string;
   region?: string;
+  city?: string;
+  cap?: string;
+  street?: string;
+  codFiscale?: string;
+  isCompany?: boolean;
+  vatNumber?: string;
+  businessName?: string;
+  headquartersAddress?: string;
+  ceoName?: string;
 };
 
 export const ProfileService = {

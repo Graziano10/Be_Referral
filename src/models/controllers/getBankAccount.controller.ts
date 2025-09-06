@@ -54,10 +54,13 @@ export const getPaymentConfirmationData = async (
       .select("+iban_enc +iban_hash") // ← importante se select:false nello schema
       .exec();
 
-    if (!doc)
-      return HTTP_404_NOT_FOUND(res, {
-        message: "Nessun conto bancario trovato",
+    if (!doc) {
+      return HTTP_200_OK(res, {
+        hasAccount: false,
+        message: "Nessun conto bancario ancora registrato",
       });
+    }
+
     if (!doc.iban_enc) {
       return HTTP_500_INTERNAL_SERVER_ERROR(res, {
         message: "IBAN cifrato mancante nel documento",

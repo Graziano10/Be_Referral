@@ -3,6 +3,7 @@ import { validateRequest } from "./validateRequest";
 import { trackRequests } from "./trackRequests";
 import { errorHandler } from "./errorHandler";
 import { asyncHandler } from "./asyncHandler";
+import { requireRole } from "./requireRole";
 
 export default {
   authorizeToken,
@@ -10,4 +11,5 @@ export default {
   validateRequest,
   errorHandler,
   asyncHandler,
+  requireRole,
 };

@@ -55,7 +55,24 @@ export const registerProfile = async (
 
     // --- Crea profilo (service gestisce check unicità e referral)
     const result = await ProfileService.create(
-      { ...b, user_id, email, firstName, lastName },
+      {
+        ...b,
+        user_id,
+        email,
+        firstName,
+        lastName,
+        phone: b.phone,
+        city: b.city,
+        cap: b.cap,
+        street: b.street,
+        codFiscale: b.codFiscale,
+        isCompany: b.isCompany ?? false,
+        vatNumber: b.vatNumber,
+        businessName: b.businessName,
+        headquartersAddress: b.headquartersAddress,
+        ceoName: b.ceoName,
+        region: b.region,
+      },
       refCode
     );
 
@@ -109,7 +126,8 @@ export const registerProfile = async (
       sub: String(newAuthUser._id), // id dell'AuthUser
       profileId: String(doc._id), // REQUIRED dal middleware
       email: doc.email, // già normalizzata
-      uid: doc.user_id, // opzionale (vedi tipo AccessJwtPayload)
+      uid: doc.user_id,
+      // opzionale (vedi tipo AccessJwtPayload)
     });
 
     // --- Session (dopo la generazione del token)
@@ -139,8 +157,15 @@ export const registerProfile = async (
           lastName: doc.lastName,
           email: doc.email,
           phone: doc.phone,
-          companyName: doc.companyName,
+          isCompany: doc.isCompany,
+          businessName: doc.businessName,
           vatNumber: doc.vatNumber,
+          headquartersAddress: doc.headquartersAddress,
+          ceoName: doc.ceoName,
+          city: doc.city,
+          cap: doc.cap,
+          street: doc.street,
+          codFiscale: doc.codFiscale,
           region: doc.region,
           verified: doc.verified,
           referralCode: doc.referralCode,

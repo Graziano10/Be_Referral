@@ -1,35 +1,51 @@
 import { HydratedDocument, Model, ObjectId, Types } from "mongoose";
+import { ITALIAN_REGIONS } from "validators/profile.validators";
 
 /********** PROFILE *********/
-export type TProfileSchema = {
-  _id: ObjectId;
-  user_id: number;
 
+export type ProfileRole = "user" | "admin" | "superAdmin";
+
+export type TProfileSchema = {
+  _id: Types.ObjectId;
+  user_id: number;
   firstName?: string;
   lastName?: string;
   email: string;
   phone?: string;
 
-  companyName?: string;
+  // address
+  city?: string;
+  cap?: string;
+  codFiscale?: string;
+  street?: string;
+
+  // company
+  isCompany: boolean;
   vatNumber?: string;
+  businessName?: string;
+  headquartersAddress?: string;
+  ceoName?: string;
 
-  region?: string;
+  region?: (typeof ITALIAN_REGIONS)[number];
 
+  referralCode?: string;
+  referredBy?: string | null;
+  referralsCount: number;
+
+  signed: boolean;
+  signedAt?: Date | null;
   verified: boolean;
+  newsletter: boolean;
 
-  referralCode?: string; // codice pubblico da condividere (es. "AB12CD")
-  referredBy?: ObjectId | null; // _id del profilo "padre" (chi ha invitato)
+  role: ProfileRole;
 
-  signed?: boolean;
-  signedAt: Date | null;
-
-  dateJoined?: Date;
+  dateJoined: Date;
   lastLogin?: Date;
   lastLogout?: Date;
   lastActivity?: Date;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 /********** SESSION *********/
@@ -115,4 +131,20 @@ export type TBankAccountInput = {
   bankName?: string;
   country?: string;
   currency?: string;
+};
+
+/********** MAIN_AWARDS *********/
+export type TMainAwardSchema = {
+  _id: Types.ObjectId;
+  title: string;
+  description?: string;
+  points: number; // valore o costo in punti
+  assignedTo: Types.ObjectId; // ref Profile (user che riceve)
+  assignedBy: Types.ObjectId; // ref Profile (admin/superAdmin che assegna)
+  redeemed: boolean; // true se riscattato
+  redeemedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  paid: boolean;
+  paidAt?: Date | null;
 };

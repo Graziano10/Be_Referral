@@ -12,6 +12,7 @@ import { errorHandler } from "./middlewares/errorHandler";
 import { logger } from "./config/logger";
 import { profileRoutes } from "./routes/profile.routes";
 import { referralRoutes } from "./routes/referral.routes";
+import { awardRoutes } from "./routes/award.routes";
 
 // importa i tuoi router quando li avrai
 // import sessionRoutes from "./modules/session/session.routes";
@@ -55,6 +56,7 @@ app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 // app.use("/session", sessionRoutes);
 app.use("/profile", profileRoutes);
 app.use("/referral", referralRoutes);
+app.use("/award", awardRoutes);
 
 // root
 app.get("/", (_req: Request, res: Response) => {

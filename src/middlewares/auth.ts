@@ -1,8 +1,20 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-export type AuthUser = { profileId: string; sub?: string; roles?: string[] };
-export type AuthRequest<T = any> = Request<{}, any, T> & { user?: AuthUser };
+export type AuthCtx = {
+  profileId: string;
+  email?: string;
+  sub?: string;
+  role?: string[];
+};
+
+export type AuthUser = { profileId: string; sub?: string; role?: string[] };
+export type AuthRequest<
+  P = {},
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = any
+> = Request<P, ResBody, ReqBody, ReqQuery> & { user?: AuthCtx };
 
 export async function authMiddleware(
   req: AuthRequest,
@@ -22,10 +34,9 @@ export async function authMiddleware(
     if (!payload?.profileId) {
       return res.status(401).json({ message: "Missing profile context" });
     }
-    req.user = {
+    req.auth = {
       profileId: String(payload.profileId),
-      sub: payload.sub,
-      roles: payload.roles,
+      email: payload.email,
     };
     next();
   } catch {

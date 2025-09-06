@@ -24,6 +24,8 @@ const ITALIAN_REGIONS = [
   "Veneto",
 ] as const;
 
+export type Role = "user" | "admin" | "superAdmin";
+
 export const ProfileSchema = new Schema<TProfileSchema>(
   {
     user_id: { type: Number, required: true, unique: true, index: true },
@@ -40,7 +42,23 @@ export const ProfileSchema = new Schema<TProfileSchema>(
     },
     phone: { type: String },
 
-    companyName: { type: String, trim: true },
+    // === Address fields ===
+    city: { type: String, trim: true },
+    cap: {
+      type: String,
+      trim: true,
+      match: [/^\d{5}$/, "CAP non valido"],
+    },
+    codFiscale: {
+      type: String,
+      trim: true,
+      match: [/^[A-Z0-9]{11,16}$/i, "Codice Fiscale non valido"],
+      index: true,
+    },
+    street: { type: String, trim: true },
+
+    // === Company fields ===
+    isCompany: { type: Boolean, default: false, index: true },
     vatNumber: {
       type: String,
       trim: true,
@@ -48,9 +66,11 @@ export const ProfileSchema = new Schema<TProfileSchema>(
         /^(IT)?\d{11}$/,
         "Partita IVA non valida (11 cifre, opz. prefisso IT)",
       ],
-      index: true, // cerca veloce per P.IVA
-      // unique: true, // <- attivalo solo se vuoi 1 profilo per P.IVA
+      index: true,
     },
+    businessName: { type: String, trim: true }, // ragione sociale
+    headquartersAddress: { type: String, trim: true }, // indirizzo sede sociale
+    ceoName: { type: String, trim: true }, // nome del CEO
 
     region: {
       type: String,
@@ -66,11 +86,20 @@ export const ProfileSchema = new Schema<TProfileSchema>(
       default: null,
       index: true,
     },
+    referralsCount: { type: Number, default: 0, index: true },
 
     signed: { type: Boolean, default: false, index: true },
     signedAt: { type: Date, default: null },
 
     verified: { type: Boolean, default: false },
+    newsletter: { type: Boolean, index: true },
+
+    // ruolo
+    role: {
+      type: String,
+      enum: ["user", "admin", "superAdmin"],
+      default: "user", // 👈 sempre user di default
+    },
 
     dateJoined: { type: Date, default: Date.now },
     lastLogin: { type: Date },
@@ -83,4 +112,4 @@ export const ProfileSchema = new Schema<TProfileSchema>(
   }
 );
 
-ProfileSchema.index({ referredBy: 1, createdAt: -1 }); // lista diretti + paginazione
+ProfileSchema.index({ referredBy: 1, createdAt: -1 });

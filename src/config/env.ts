@@ -1,3 +1,4 @@
+// src/config/env.ts
 import dotenv from "dotenv";
 import { cleanEnv, port, str, url, makeValidator } from "envalid";
 
@@ -11,27 +12,33 @@ const mongoUri = makeValidator<string>((v) => {
   return v;
 });
 
+// Valida lista separata da virgole → array
+const csv = makeValidator<string[]>((input) =>
+  input.split(",").map((s) => s.trim())
+);
+
 const env = cleanEnv(process.env, {
   NODE_ENV: str({
     choices: ["development", "production", "test"],
     default: "development",
   }),
   API_PORT: port({ default: 3000 }),
-  API_URL: url({ default: "http://localhost" }),
+  API_URL: url({ default: "http://localhost:3000" }),
 
-  // ✅ unico modo per configurare il DB
   MONGO_URI: mongoUri(),
 
-  // Auth (JWT)
   JWT_ACCESS_SECRET: str(),
-
-  // Security / CORS
-  CORS_ORIGINS: str({ default: "*" }),
   COOKIE_SECRET: str(),
 
+  // Security
+  CORS_ORIGINS: str({ default: "*" }),
+
+  // Referral
   REF_LINK_BASE: url({ default: "http://localhost:5173/register" }),
 });
 
 export const isDev = env.NODE_ENV === "development";
 export const isProduction = env.NODE_ENV === "production";
+
+export type Env = typeof env;
 export default env;

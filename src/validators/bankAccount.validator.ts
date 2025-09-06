@@ -114,17 +114,28 @@ export const bankAccountOutputSchema = z.object({
   createdAt: z.date().or(z.string().transform((d) => new Date(d))),
 });
 
-export const confirmationViewSchema = z.object({
-  id: z.string(),
-  holderName: z.string(),
-  email: z.string().email(),
-  bankName: z.string().optional().nullable(),
-  bic: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  currency: z.string().optional().nullable(),
-  ibanMasked: z.string().optional(),
-  iban: z.string().optional(), // ← pieno se reveal=1
-  createdAt: z.date(),
-  updatedAt: z.date().optional(),
-  isPrimary: z.boolean().optional(),
-});
+const isoDate = z.string().datetime({ offset: true }); // accetta ISO 8601 con timezone
+const dateLike = z.union([z.date(), isoDate]);
+
+export const confirmationViewSchema = z
+  .object({
+    id: z.string(),
+    holderName: z.string(),
+    email: z.string().email().nullable(),
+    bankName: z.string().nullable(),
+    bic: z.string().nullable(),
+    country: z.string().nullable(),
+    currency: z.string().nullable(),
+
+    // una delle due modalità:
+    iban: z.string().optional(), // quando reveal=1
+    ibanMasked: z.string().optional(), // quando mascherato
+    ibanLast4: z.string().length(4).optional(),
+
+    createdAt: dateLike,
+    updatedAt: dateLike.nullable().optional(),
+    isPrimary: z.boolean().optional(),
+  })
+  .refine((v) => !!v.iban || (!!v.ibanMasked && !!v.ibanLast4), {
+    message: "Serve iban oppure ibanMasked+ibanLast4",
+  });

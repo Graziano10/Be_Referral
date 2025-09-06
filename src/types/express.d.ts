@@ -6,7 +6,7 @@
 //       profileId: string;
 //       email?: string;
 //       sub?: string;
-//       roles?: string[];
+//       role?: string[];
 //       raw?: any;
 //     };
 //     profile?: {
@@ -28,7 +28,7 @@ declare global {
       sub?: string;
       profileId: string;
       email?: string;
-      roles?: string[];
+      role?: string[];
       iat?: number;
       exp?: number;
     }
@@ -37,7 +37,7 @@ declare global {
         profileId: string;
         email?: string;
         sub?: string;
-        roles?: string[];
+        role?: string[];
         raw?: any;
       };
       profile?: Pick<

@@ -2,6 +2,7 @@
 import axios from "axios";
 import type { Response } from "express";
 import jwt, { type SignOptions } from "jsonwebtoken";
+import type { AxiosRequestConfig, AxiosError } from "axios";
 
 // Se hai un modulo env centralizzato, usalo (consigliato):
 // import env from "../../config/env";
@@ -13,18 +14,17 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Evita i tipi Axios nominali: usa 'any' per le options e cast controllato sulle risposte
 export async function axiosRequest<T = any>(
-  options: any
+  options: AxiosRequestConfig
 ): Promise<{ status: number; data: T | null }> {
   try {
-    const response = await api.request(options);
-    return { status: response.status, data: response.data as T };
+    const response = await api.request<T>(options);
+    return { status: response.status, data: response.data };
   } catch (err) {
-    const e: any = err; // narrow manuale
+    const e = err as AxiosError<T>;
     return {
-      status: e?.response?.status ?? 500,
-      data: (e?.response?.data as T | undefined) ?? null,
+      status: e.response?.status ?? 500,
+      data: e.response?.data ?? null,
     };
   }
 }
@@ -35,7 +35,8 @@ export type AccessJwtPayload = {
   profileId: string; // id Profile -> usato dal middleware
   email: string; // email normalizzata
   uid?: number; // (opzionale) profile.user_id
-  rememberMe?: boolean; // (opzionale) flag
+  rememberMe?: boolean;
+  role?: string[];
 };
 
 /** Genera un access token (default: 7 giorni) con la chiave JWT_ACCESS_SECRET */
@@ -75,6 +76,9 @@ export function HTTP_400_BAD_REQUEST(res: Response, payload: unknown) {
 }
 export function HTTP_401_UNAUTHORIZED(res: Response, payload: unknown) {
   return res.status(401).json(payload);
+}
+export function HTTP_422_UNPROCESSABLE_ENTITY(res: Response, payload: unknown) {
+  return res.status(422).json(payload);
 }
 export function HTTP_404_NOT_FOUND(res: Response, payload: unknown) {
   return res.status(404).json(payload);
